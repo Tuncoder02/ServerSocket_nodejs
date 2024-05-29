@@ -2,7 +2,7 @@ const totp = require('./totp');
 const http = require('http');
 const socketio = require('socket.io');
 const { MongoClient } = require('mongodb'); // Import MongoClient từ thư viện mongodb
-const { encrypt, decrypt } = require('./encryption');
+const { encrypt, decrypt,encryptWithKey2,decryptWithKey2 } = require('./encryption');
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end('<h1>Hello, World!</h1>');
@@ -39,9 +39,9 @@ io.on('connection', async (socket) => {
         const parts = message1.split(' '); // Tách theo dấu cách
 
             if (parts.length === 3 && parts[0] === 'login') {
-                const username = parts[1];
-                const password = parts[2];
-
+                const username = encryptWithKey2(parts[1]);
+                const password = encryptWithKey2(parts[2]);
+                
                 const query = {
                     username: username,
                     password: password
@@ -52,7 +52,7 @@ io.on('connection', async (socket) => {
                 if (user) {
                     console.log('Login successful for user:', user);
                     
-                    const encrypted = encrypt('1'+user.twofaon);
+                    const encrypted = encrypt('1'+decryptWithKey2(user.twofaon));
                     socket.emit('message',encrypted );
                 } else {
                     console.log('Login failed. Username or password incorrect.');
@@ -63,8 +63,8 @@ io.on('connection', async (socket) => {
 
             } else {
                 if (parts.length === 3 && parts[0] === 'signup') {
-                    const username = parts[1];
-                    const password = parts[2];
+                    const username = encryptWithKey2(parts[1]);
+                    const password = encryptWithKey2(parts[2]);
     
                     const query = {
                         username: username
@@ -81,8 +81,8 @@ io.on('connection', async (socket) => {
                         const query2 = {
                             username: username,
                             password: password, 
-                            twofaon: '0',
-                            twofakey: '0'
+                            twofaon: encryptWithKey2('0'),
+                            twofakey: encryptWithKey2('0')
                         };
                         collection.insertOne(query2)
                     
@@ -94,8 +94,9 @@ io.on('connection', async (socket) => {
 
                      else
                   if (parts.length === 3 && parts[0] === 'bat2fa') { 
-                    const username = parts[1];
-                    const password = parts[2]; 
+                    const username = encryptWithKey2(parts[1]);
+                    const password = encryptWithKey2(parts[2]);
+    
                     const query = {
                         username: username,
                         password: password
@@ -108,8 +109,8 @@ io.on('connection', async (socket) => {
                             const query = {
                                 username: username,
                                 password: password, 
-                                twofaon: '0',
-                                twofakey: skey
+                                twofaon: encryptWithKey2('0'),
+                                twofakey: encryptWithKey2(skey)
                             };
                             const result = await collection.replaceOne(user, query);
                             const encrypted = encrypt(skey);
@@ -120,8 +121,8 @@ io.on('connection', async (socket) => {
 
                   }else
                   if (parts.length === 4 && parts[0] === 'xacminhbat2fa') { 
-                    const username = parts[1];
-                    const password = parts[2];
+                    const username = encryptWithKey2(parts[1]);
+                    const password = encryptWithKey2(parts[2]);
                     const code=parts[3];
                     const query = {
                         username: username,
@@ -131,13 +132,13 @@ io.on('connection', async (socket) => {
                     const user = await collection.findOne(query);
                     if(user)
                         {
-                            const kt=totp.verifyTOTP(code,user.twofakey)
+                            const kt=totp.verifyTOTP(code,decryptWithKey2(user.twofakey))
                             if(kt==true)
                                 {
                                     const query = {
                                         username: username,
                                         password: password, 
-                                        twofaon: '1',
+                                        twofaon: encryptWithKey2('1'),
                                         twofakey: user.twofakey
     
                                     };
@@ -151,8 +152,8 @@ io.on('connection', async (socket) => {
                                 const query = {
                                     username: username,
                                     password: password, 
-                                    twofaon: '0',
-                                    twofakey: '0'
+                                    twofaon: encryptWithKey2('0'),
+                                    twofakey: encryptWithKey2('0')
 
                                 };
                                 const result = await collection.replaceOne(user, query);
@@ -166,8 +167,8 @@ io.on('connection', async (socket) => {
 
                   }else
                   if (parts.length === 4 && parts[0] === 'xacminh2fa') { 
-                    const username = parts[1];
-                    const password = parts[2];
+                    const username = encryptWithKey2(parts[1]);
+                    const password = encryptWithKey2(parts[2]);
                     const code=parts[3];
                     const query = {
                         username: username,
@@ -177,7 +178,7 @@ io.on('connection', async (socket) => {
                     const user = await collection.findOne(query);
                     if(user)
                         {
-                            const kt=totp.verifyTOTP(code,user.twofakey)
+                            const kt=totp.verifyTOTP(code,decryptWithKey2(user.twofakey))
                             if(kt==true)
                                 {   
                                     const encrypted = encrypt('1');
@@ -197,8 +198,8 @@ io.on('connection', async (socket) => {
                   }
                   else
                   if (parts.length === 3 && parts[0] === 'tat2fa') { 
-                    const username = parts[1];
-                    const password = parts[2];
+                    const username = encryptWithKey2(parts[1]);
+                    const password = encryptWithKey2(parts[2]);
                 
                     const query = {
                         username: username,
